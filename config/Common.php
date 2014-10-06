@@ -17,7 +17,6 @@ class Common extends Config
         $this->modifyLogger($di);
         $this->modifyWebRouter($di);
         $this->modifyWebDispatcher($di);
-        $this->modifyTemplates($di);
     }
 
     public function modifyLogger(Container $di)
@@ -52,32 +51,21 @@ class Common extends Config
         $request = $di->get('aura/web-kernel:request');
         $dispatcher->setObject('hello', function () use ($view, $response, $request) {
             $name = $request->query->get('name', 'Aura');
+
+            // set the path of the templates to registry
+            $view_registry = $view->getViewRegistry();
+            $view_registry->set('hello', dirname(__DIR__) . '/templates/views/hello.php');
+            $layout_registry = $view->getLayoutRegistry();
+            $layout_registry->set('default', dirname(__DIR__) . '/templates/layouts/default.php');
+
+            // set the view and layout to be rendered
             $view->setView('hello');
             $view->setLayout('default');
+
+            // set data
             $view->setData(array('name' => $name));
+            // render the data and set back to response
             $response->content->set($view->__invoke());
         });
-    }
-
-    public function modifyTemplates($di)
-    {
-        $view = $di->get('view');
-        $view_registry = $view->getViewRegistry();
-        $view_directory = dirname(__DIR__) . '/templates/views/';
-        $iterator = new \DirectoryIterator($view_directory);
-        foreach ($iterator as $fileinfo) {
-            if ($fileinfo->isFile()) {
-                $view_registry->set($fileinfo->getBasename('.php'), $fileinfo->getPathname());
-            }
-        }
-
-        $layout_registry = $view->getLayoutRegistry();
-        $layout_directory = dirname(__DIR__) . '/templates/layouts/';
-        $iterator = new \DirectoryIterator($layout_directory);
-        foreach ($iterator as $fileinfo) {
-            if ($fileinfo->isFile()) {
-                $layout_registry->set($fileinfo->getBasename('.php'), $fileinfo->getPathname());
-            }
-        }
     }
 }
